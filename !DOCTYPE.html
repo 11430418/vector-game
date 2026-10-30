@@ -5,80 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>向量彈射物理小遊戲</title>
     <style>
-        body {
-            margin: 0;
-            background: #1e1e24;
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            overflow: hidden;
-            user-select: none;
-        }
-        #gameContainer {
-            position: relative;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        canvas {
-            background: #111116;
-            display: block;
-            cursor: crosshair;
-        }
-        .ui-panel {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            font-size: 18px;
-            font-weight: bold;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
-            pointer-events: none;
-        }
-        .vector-info {
-            position: absolute;
-            bottom: 15px;
-            right: 15px;
-            font-family: monospace;
-            background: rgba(0,0,0,0.7);
-            padding: 8px 12px;
-            border-radius: 5px;
-            font-size: 14px;
-            color: #00ffcc;
-            pointer-events: none;
-            line-height: 1.4;
-        }
-        .instructions {
-            margin-top: 15px;
-            color: #aaa;
-            font-size: 14px;
-            text-align: center;
-            max-width: 600px;
-            line-height: 1.6;
-        }
+        body { margin: 0; background: #1e1e24; color: #ffffff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; user-select: none; }
+        #gameContainer { position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-radius: 8px; overflow: hidden; }
+        canvas { background: #111116; display: block; cursor: crosshair; }
+        .ui-panel { position: absolute; top: 15px; left: 15px; font-size: 18px; font-weight: bold; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); pointer-events: none; }
+        .vector-info { position: absolute; bottom: 15px; right: 15px; font-family: monospace; background: rgba(0,0,0,0.7); padding: 8px 12px; border-radius: 5px; font-size: 14px; color: #00ffcc; pointer-events: none; line-height: 1.4; }
+        .instructions { margin-top: 15px; color: #aaa; font-size: 14px; text-align: center; max-width: 600px; line-height: 1.6; }
     </style>
 </head>
 <body>
-
     <div id="gameContainer">
-        <div class="ui-panel">
-            得分: <span id="score">0</span> | 彈藥: <span id="ammo">5</span>
-        </div>
-        <div class="vector-info" id="vectorInfo">
-            拉力向量: [ 0.0, 0.0 ]<br>向量大小 (力度): 0.0
-        </div>
+        <div class="ui-panel">得分: <span id="score">0</span> | 彈藥: <span id="ammo">5</span></div>
+        <div class="vector-info" id="vectorInfo">拉力向量: [ 0.0, 0.0 ]<br>向量大小 (力度): 0.0</div>
         <canvas id="gameCanvas" width="800" height="500"></canvas>
     </div>
-    
     <div class="instructions">
-        <strong>玩法說明：</strong> 用滑鼠（或手指）拖拽發射台上的<strong>白色小球</strong>向後拉動，畫面上會動態計算出<strong>發射向量（紅線）</strong>與<strong>預測軌跡（虛線）</strong>，放開滑鼠即可射擊！撞擊移動的黃色目標以獲得分數。
+        <strong>玩法說明：</strong> 用滑鼠或手指拖拽發射台上的<strong>白色小球</strong>向後拉動，會動態計算出<strong>發射向量（紅線）</strong>與<strong>預測軌跡（虛線）</strong>，放開即可射擊！撞擊移動的黃色目標得分。
     </div>
-
     <script>
-        // 確保在 window 加載完成後以及 canvas 存在時再初始化
         function initGame() {
             const canvas = document.getElementById('gameCanvas');
             if (!canvas) return;
@@ -86,247 +30,82 @@
             const scoreEl = document.getElementById('score');
             const ammoEl = document.getElementById('ammo');
             const vectorInfoEl = document.getElementById('vectorInfo');
-
-            let score = 0;
-            let ammo = 5;
-            let gameState = 'aiming'; 
-
-            const originX = 120;
-            const originY = 380;
-
-            const ball = {
-                x: originX,
-                y: originY,
-                vx: 0,
-                vy: 0,
-                radius: 12,
-                gravity: 0.25,
-                friction: 0.99
-            };
-
-            const target = {
-                x: 600,
-                y: 200,
-                radius: 20,
-                vy: 2.0
-            };
-
-            const obstacle = {
-                x: 400,
-                y: 150,
-                width: 30,
-                height: 200
-            };
-
-            let isDragging = false;
-
+            let score = 0, ammo = 5, gameState = 'aiming', isDragging = false;
+            const originX = 120, originY = 380;
+            const ball = { x: originX, y: originY, vx: 0, vy: 0, radius: 12, gravity: 0.25, friction: 0.99 };
+            const target = { x: 600, y: 200, radius: 20, vy: 2.0 };
+            const obstacle = { x: 400, y: 150, width: 30, height: 200 };
             canvas.addEventListener('mousedown', onStart);
             canvas.addEventListener('mousemove', onMove);
             window.addEventListener('mouseup', onEnd);
-
             canvas.addEventListener('touchstart', (e) => { if(e.touches.length > 0) onStart(e.touches[0]); e.preventDefault(); }, { passive: false });
             canvas.addEventListener('touchmove', (e) => { if(e.touches.length > 0) onMove(e.touches[0]); e.preventDefault(); }, { passive: false });
             window.addEventListener('touchend', onEnd);
-
             function onStart(e) {
                 if (gameState !== 'aiming' || ammo <= 0) return;
                 const rect = canvas.getBoundingClientRect();
-                const clickX = e.clientX - rect.left;
-                const clickY = e.clientY - rect.top;
-
-                const dist = Math.hypot(clickX - ball.x, clickY - ball.y);
-                if (dist < 40) {
-                    isDragging = true;
-                    ball.x = clickX;
-                    ball.y = clickY;
-                }
+                const clickX = e.clientX - rect.left, clickY = e.clientY - rect.top;
+                if (Math.hypot(clickX - ball.x, clickY - ball.y) < 40) { isDragging = true; ball.x = clickX; ball.y = clickY; }
             }
-
             function onMove(e) {
                 if (!isDragging) return;
                 const rect = canvas.getBoundingClientRect();
-                let mX = e.clientX - rect.left;
-                let mY = e.clientY - rect.top;
-
-                const dx = mX - originX;
-                const dy = mY - originY;
-                const dist = Math.hypot(dx, dy);
-                const maxDrag = 120;
-
-                if (dist > maxDrag) {
-                    const angle = Math.atan2(dy, dx);
-                    mX = originX + Math.cos(angle) * maxDrag;
-                    mY = originY + Math.sin(angle) * maxDrag;
-                }
-
-                ball.x = mX;
-                ball.y = mY;
+                let mX = e.clientX - rect.left, mY = e.clientY - rect.top;
+                const dx = mX - originX, dy = mY - originY, dist = Math.hypot(dx, dy), maxDrag = 120;
+                if (dist > maxDrag) { const angle = Math.atan2(dy, dx); mX = originX + Math.cos(angle) * maxDrag; mY = originY + Math.sin(angle) * maxDrag; }
+                ball.x = mX; ball.y = mY;
             }
-
             function onEnd() {
                 if (!isDragging) return;
                 isDragging = false;
-
-                const dx = originX - ball.x;
-                const dy = originY - ball.y;
-                
-                ball.vx = dx * 0.13;
-                ball.vy = dy * 0.13;
-
-                gameState = 'flying';
-                ammo--;
-                ammoEl.textContent = ammo;
+                ball.vx = (originX - ball.x) * 0.13;
+                ball.vy = (originY - ball.y) * 0.13;
+                gameState = 'flying'; ammo--; ammoEl.textContent = ammo;
             }
-
             function update() {
                 target.y += target.vy;
-                if (target.y - target.radius < 40 || target.y + target.radius > canvas.height - 40) {
-                    target.vy *= -1;
-                }
-
+                if (target.y - target.radius < 40 || target.y + target.radius > canvas.height - 40) target.vy *= -1;
                 if (gameState === 'flying') {
-                    ball.vy += ball.gravity;
-                    ball.vx *= ball.friction;
-                    ball.vy *= ball.friction;
-                    ball.x += ball.vx;
-                    ball.y += ball.vy;
-
-                    if (ball.y - ball.radius > canvas.height || ball.x - ball.radius > canvas.width || ball.x + ball.radius < 0) {
-                        resetBall();
-                    }
-
-                    if (ball.x + ball.radius > obstacle.x && ball.x - ball.radius < obstacle.x + obstacle.width &&
-                        ball.y + ball.radius > obstacle.y && ball.y - ball.radius < obstacle.y + obstacle.height) {
-                        ball.vx *= -0.8;
-                        ball.x += ball.vx;
-                    }
-
-                    const distToTarget = Math.hypot(ball.x - target.x, ball.y - target.y);
-                    if (distToTarget < ball.radius + target.radius) {
-                        score += 100;
-                        scoreEl.textContent = score;
-                        target.y = Math.random() * (canvas.height - 160) + 80;
-                        resetBall();
-                    }
+                    ball.vy += ball.gravity; ball.vx *= ball.friction; ball.vy *= ball.friction; ball.x += ball.vx; ball.y += ball.vy;
+                    if (ball.y - ball.radius > canvas.height || ball.x - ball.radius > canvas.width || ball.x + ball.radius < 0) resetBall();
+                    if (ball.x + ball.radius > obstacle.x && ball.x - ball.radius < obstacle.x + obstacle.width && ball.y + ball.radius > obstacle.y && ball.y - ball.radius < obstacle.y + obstacle.height) { ball.vx *= -0.8; ball.x += ball.vx; }
+                    if (Math.hypot(ball.x - target.x, ball.y - target.y) < ball.radius + target.radius) { score += 100; scoreEl.textContent = score; target.y = Math.random() * (canvas.height - 160) + 80; resetBall(); }
                 }
-
                 if (isDragging) {
-                    const vecX = (originX - ball.x).toFixed(1);
-                    const vecY = (originY - ball.y).toFixed(1);
-                    const force = Math.hypot(originX - ball.x, originY - ball.y).toFixed(1);
+                    const vecX = (originX - ball.x).toFixed(1), vecY = (originY - ball.y).toFixed(1), force = Math.hypot(originX - ball.x, originY - ball.y).toFixed(1);
                     vectorInfoEl.innerHTML = `發射向量: [ ${vecX}, ${-vecY} ]<br>向量大小 (力度): ${force}`;
-                } else {
-                    vectorInfoEl.innerHTML = `拉力向量: [ 0.0, 0.0 ]<br>向量大小 (力度): 0.0`;
-                }
+                } else { vectorInfoEl.innerHTML = `拉力向量: [ 0.0, 0.0 ]<br>向量大小 (力度): 0.0`; }
             }
-
-            function resetBall() {
-                ball.x = originX;
-                ball.y = originY;
-                ball.vx = 0;
-                ball.vy = 0;
-                gameState = (ammo <= 0) ? 'gameOver' : 'aiming';
-            }
-
+            function resetBall() { ball.x = originX; ball.y = originY; ball.vx = 0; ball.vy = 0; gameState = (ammo <= 0) ? 'gameOver' : 'aiming'; }
             function drawTrajectory() {
                 if (!isDragging) return;
-                
-                let simX = originX;
-                let simY = originY;
-                const dx = originX - ball.x;
-                const dy = originY - ball.y;
-                let simVx = dx * 0.13;
-                let simVy = dy * 0.13;
-
-                ctx.beginPath();
-                ctx.setLineDash();
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-                ctx.moveTo(simX, simY);
-
-                for (let i = 0; i < 40; i++) {
-                    simVy += ball.gravity;
-                    simVx *= ball.friction;
-                    simVy *= ball.friction;
-                    simX += simVx;
-                    simY += simVy;
-                    ctx.lineTo(simX, simY);
-                }
-                ctx.stroke();
-                ctx.setLineDash([]);
+                let simX = originX, simY = originY;
+                let simVx = (originX - ball.x) * 0.13, simVy = (originY - ball.y) * 0.13;
+                ctx.beginPath(); ctx.setLineDash([5, 5]); ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)'; ctx.moveTo(simX, simY);
+                for (let i = 0; i < 40; i++) { simVy += ball.gravity; simVx *= ball.friction; simVy *= ball.friction; simX += simVx; simY += simVy; ctx.lineTo(simX, simY); }
+                ctx.stroke(); ctx.setLineDash([]);
             }
-
             function draw() {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-                ctx.strokeStyle = '#22222a';
-                ctx.lineWidth = 1;
-                for(let x = 0; x < canvas.width; x += 40) {
-                    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+                ctx.strokeStyle = '#22222a'; ctx.lineWidth = 1;
+                for(let x = 0; x < canvas.width; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke(); }
+                for(let y = 0; y < canvas.height; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke(); }
+                ctx.beginPath(); ctx.arc(originX, originY, 20, 0, Math.PI * 2); ctx.strokeStyle = '#00ffcc'; ctx.lineWidth = 2; ctx.stroke();
+                if (isDragging) { ctx.beginPath(); ctx.moveTo(originX, originY); ctx.lineTo(ball.x, ball.y); ctx.strokeStyle = '#ff3366'; ctx.lineWidth = 3; ctx.stroke(); drawTrajectory(); }
+                ctx.fillStyle = '#4e54c8'; ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                ctx.beginPath(); ctx.arc(target.x, target.y, target.radius, 0, Math.PI * 2); ctx.fillStyle = '#ffcc00'; ctx.fill();
+                ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2); ctx.fillStyle = gameState === 'flying' ? '#00ffcc' : '#ffffff'; ctx.fill();
+                if (gameState === 'gameOver') {
+                    ctx.fillStyle = 'rgba(15, 15, 20, 0.9)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 40px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('遊戲結束', canvas.width / 2, canvas.height / 2 - 20);
+                    ctx.font = '20px sans-serif'; ctx.fillStyle = '#00ffcc'; ctx.fillText(`最終得分: ${score} 分`, canvas.width / 2, canvas.height / 2 + 20);
                 }
-                for(let y = 0; y < canvas.height; y += 40) {
-                    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-                }
-
-                ctx.beginPath();
-                ctx.arc(originX, originY, 20, 0, Math.PI * 2);
-                ctx.strokeStyle = '#00ffcc';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-
-                if (isDragging) {
-                    ctx.beginPath();
-                    ctx.moveTo(originX, originY);
-                    ctx.lineTo(ball.x, ball.y);
-                    ctx.strokeStyle = '#ff3366';
-                    ctx.lineWidth = 3;
-                    ctx.stroke();
-                    
-                    drawTrajectory();
-                }
-
-                ctx.fillStyle = '#4e54c8';
-                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-
-                ctx.beginPath();
-請謹慎使用程式碼。
-ctx.arc(target.x, target.y, target.radius, 0, Math.PI * 2);
-ctx.fillStyle = '#ffcc00';
-ctx.fill();
-ctx.beginPath();
-ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-ctx.fillStyle = gameState === 'flying' ? '#00ffcc' : '#ffffff';
-ctx.fill();
-if (gameState === 'gameOver') {
-ctx.fillStyle = 'rgba(15, 15, 20, 0.9)';
-ctx.fillRect(0, 0, canvas.width, canvas.height);
-ctx.fillStyle = '#ffffff';
-ctx.font = 'bold 40px sans-serif';
-ctx.textAlign = 'center';
-ctx.fillText('遊戲結束', canvas.width / 2, canvas.height / 2 - 20);
-ctx.font = '20px sans-serif';
-ctx.fillStyle = '#00ffcc';
-ctx.fillText(最終得分: ${score} 分, canvas.width / 2, canvas.height / 2 + 20);
-}
-}
-window.addEventListener('click', () => {
-if (gameState === 'gameOver') {
-score = 0;
-ammo = 5;
-scoreEl.textContent = score;
-ammoEl.textContent = ammo;
-resetBall();
-}
-});
-function loop() {
-update();
-draw();
-requestAnimationFrame(loop);
-}
-loop();
-}
-// 確保相容各種載入情境
-if (document.readyState === 'complete') {
-initGame();
-} else {
-window.addEventListener('load', initGame);
-}
+            }
+            window.addEventListener('click', () => { if (gameState === 'gameOver') { score = 0; ammo = 5; scoreEl.textContent = score; ammoEl.textContent = ammo; resetBall(); } });
+            function loop() { update(); draw(); requestAnimationFrame(loop); }
+            loop();
+        }
+        if (document.readyState === 'complete') { initGame(); } else { window.addEventListener('load', initGame); }
+    </script>
+</body>
+</html>
